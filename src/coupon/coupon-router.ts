@@ -8,6 +8,7 @@ const router = express.Router()
 const couponController = new CouponConytoller()
 
 router.post("/", authenticate, asyncWrapper(couponController.create))
+router.post("/verify", authenticate, asyncWrapper(couponController.verify))
 
 
 export default router
