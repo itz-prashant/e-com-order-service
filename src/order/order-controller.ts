@@ -8,29 +8,62 @@ import {
 import productCacheModel from "../productCache/product-cache-model";
 import toppingCacheModel from "../toppingCache.ts/toppingCacheModel";
 import couponModel from "../coupon/coupon-model";
+import orderModel from "./order-model";
+import { OrderStatus, PaymentStatus } from "./order-types";
 
 export class OrderController {
   create = async (req: Request, res: Response) => {
-
-    const {cart,couponCode, tenantId } = req.body
+    const {
+      cart,
+      couponCode,
+      tenantId,
+      paymentMode,
+      customerId,
+      comment,
+      address,
+    } = req.body;
 
     const totalPrice = await this.calculateTotal(cart);
 
     let discountPercentage = 0;
 
-    if(couponCode){
-        discountPercentage = await this.getDiscountPercentage(couponCode, tenantId)
+    if (couponCode) {
+      discountPercentage = await this.getDiscountPercentage(
+        couponCode,
+        tenantId,
+      );
     }
 
-    const discountAmount = Math.round((totalPrice * discountPercentage )/ 100)
+    const discountAmount = Math.round((totalPrice * discountPercentage) / 100);
 
-    const priceAfterDiscount = totalPrice - discountAmount
+    const priceAfterDiscount = totalPrice - discountAmount;
 
-    const TAXES_PERCENT = 5
+    const TAXES_PERCENT = 5;
 
-    const taxes = Math.round((priceAfterDiscount * TAXES_PERCENT) / 100)
+    const taxes = Math.round((priceAfterDiscount * TAXES_PERCENT) / 100);
 
-    return res.json({ taxes: taxes });
+    const DELIVERY_CHARGES = 50;
+
+    const finalTotal = priceAfterDiscount + taxes + DELIVERY_CHARGES;
+
+    // create an order
+
+    const newOrder = await orderModel.create({
+      cart,
+      comment,
+      address,
+      customerId,
+      deliveryCahrges: DELIVERY_CHARGES,
+      discount: discountAmount,
+      paymentMode,
+      taxes,
+      tenantId,
+      total: finalTotal,
+      orderStatus: OrderStatus.RECEIVED,
+      paymentStatus: PaymentStatus.PENDING,
+    });
+
+    return res.json({ newOrder: newOrder });
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
@@ -130,18 +163,21 @@ export class OrderController {
     return currentTopping.price;
   };
 
-  private getDiscountPercentage = async (couponCode:string, tenantId:number)=>{
-    const code = await couponModel.findOne({code:couponCode, tenantId})
+  private getDiscountPercentage = async (
+    couponCode: string,
+    tenantId: number,
+  ) => {
+    const code = await couponModel.findOne({ code: couponCode, tenantId });
 
-    if(!code){
-        return 0
+    if (!code) {
+      return 0;
     }
     const currentDate = new Date();
-    const couponDate = new Date(code.validUpTo)
+    const couponDate = new Date(code.validUpTo);
 
-    if(currentDate <= couponDate){
-        return code.discount
+    if (currentDate <= couponDate) {
+      return code.discount;
     }
-    return 0
-  }
+    return 0;
+  };
 }
