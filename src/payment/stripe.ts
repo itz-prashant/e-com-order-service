@@ -16,9 +16,22 @@ export class StripeGW implements PaymentGateway {
   async createSession(options: PaymentOptions): Promise<PaymentSession> {
     const session = await this.stripe.checkout.sessions.create(
       {
+        // customer_email: options.email,
         metadata: {
           orderId: options.orderId,
         },
+        billing_address_collection: "required",
+        // payment_intent_data:{
+        //     shipping:{
+        //         name: "Prashant gupta",
+        //         address: {
+        //             line1: "one line",
+        //             city: "Prayagraj",
+        //             country: "India",
+        //             postal_code: "20000"
+        //         }
+        //     }
+        // },
         line_items: [
           {
             price_data: {
