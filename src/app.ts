@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import customerRouter from "./customer/customer-router"
 import couponRouter from "./coupon/coupon-router"
 import orderRouter from "./order/order-router"
+import paymentRouter from "./payment/payment-router"
 
 const app = express();
 app.use(cookieParser());
@@ -16,6 +17,7 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/customer", customerRouter)
 app.use("/coupons", couponRouter)
 app.use("/orders", orderRouter)
+app.use("/payments", paymentRouter)
 
 app.use(globalErrorHandler);
 
