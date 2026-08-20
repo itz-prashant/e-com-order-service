@@ -14,9 +14,10 @@ import idempotencyModel from "../idempotency/idempotency-model";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
 import { PaymentGateway } from "../payment/payment-type";
+import { MessageBroker } from "../types/broker";
 
 export class OrderController {
-  constructor(private paymentGW: PaymentGateway) {}
+  constructor(private paymentGW: PaymentGateway, private broker: MessageBroker) {}
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     const {
@@ -110,9 +111,11 @@ export class OrderController {
         currency: "inr",
         idempotencyKey: idemPotencyKey as string,
       });
+    await this.broker.sendMessgae("order", JSON.stringify(newOrder))
 
       return res.json({ paymentUrl: session.paymentUrl });
     }
+    await this.broker.sendMessgae("order", JSON.stringify(newOrder))
 
     return res.json({ paymentUrl: null});
   };

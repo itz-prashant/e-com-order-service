@@ -2,9 +2,10 @@ import { Request, Response } from "express";
 import { PaymentGateway } from "./payment-type";
 import orderModel from "../order/order-model";
 import { PaymentStatus } from "../order/order-types";
+import { MessageBroker } from "../types/broker";
 
 export class PaymentController {
-  constructor(private paymentGW: PaymentGateway) {}
+  constructor(private paymentGW: PaymentGateway, private broker:MessageBroker) {}
 
   handleWebhook = async (req: Request, res: Response) => {
     const webhookBody = req.body;
@@ -27,7 +28,8 @@ export class PaymentController {
         },
         { new:true },
       );
-    console.log("updatedOrder", updatedOrder)
+    // console.log("updatedOrder", updatedOrder)
+    await this.broker.sendMessgae("order", JSON.stringify(updatedOrder))
     }
     return res.json({ success: true });
   };
