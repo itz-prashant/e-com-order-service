@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import {Request as AuthRequest} from "express-jwt"
 import {
   CartItem,
   ProductPricingCache,
@@ -15,6 +16,7 @@ import mongoose from "mongoose";
 import createHttpError from "http-errors";
 import { PaymentGateway } from "../payment/payment-type";
 import { MessageBroker } from "../types/broker";
+import customerModel from "../customer/customer-model";
 
 export class OrderController {
   constructor(private paymentGW: PaymentGateway, private broker: MessageBroker) {}
@@ -119,6 +121,23 @@ export class OrderController {
 
     return res.json({ paymentUrl: null});
   };
+
+  getMine = async (req: AuthRequest, res: Response,next: NextFunction)=>{
+    const userId = req.auth.sub
+
+    if(!userId){
+      return next(createHttpError(400, "No userId found"))
+    }
+
+    const customer = await customerModel.findOne({userId})
+    if(!customer){
+      return next(createHttpError(400, "No customer found"))
+    }
+
+    const orders = orderModel.find({customerId: customer.id}, {cart: 0})
+
+    return res.json(orders)
+  }
 
   private calculateTotal = async (cart: CartItem[]) => {
     const productIds = cart.map((item) => item._id);
