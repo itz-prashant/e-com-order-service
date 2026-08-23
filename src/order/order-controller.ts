@@ -134,7 +134,7 @@ export class OrderController {
       return next(createHttpError(400, "No customer found"))
     }
 
-    const orders = orderModel.find({customerId: customer.id}, {cart: 0})
+    const orders = await orderModel.find({customerId: customer.id}, {cart: 0})
 
     return res.json(orders)
   }
