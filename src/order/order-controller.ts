@@ -149,18 +149,26 @@ export class OrderController {
     const { sub: userId, role, tenant: tenantId } = req.auth;
 
     const orderId = req.params.orderId;
-    const fields = req.query.fields ? req.query.fields.toString().split(",") : []
+    const fields = req.query.fields
+      ? req.query.fields.toString().split(",")
+      : [];
 
     if (!userId) {
       return next(createHttpError(400, "No userId found"));
     }
 
-    const projection = fields.reduce((acc, field)=>{
-      acc[field] = 1
-      return acc
-    },{})
+    const projection = fields.reduce(
+      (acc, field) => {
+        acc[field] = 1;
+        return acc;
+      },
+      { customerId: 1 },
+    );
 
-    const order = await orderModel.findOne({ _id: orderId }, projection);
+    const order = await orderModel
+      .findOne({ _id: orderId }, projection)
+      .populate("customerId")
+      .exec();
 
     if (!order) {
       return next(createHttpError(400, "Order does not exist"));
@@ -181,7 +189,7 @@ export class OrderController {
       if (!customer) {
         return next(createHttpError(400, "No customer found"));
       }
-      if(customer._id.toString() === order.customerId.toString()){
+      if (customer._id.toString() === order.customerId._id.toString()) {
         return res.json(order);
       }
     }
