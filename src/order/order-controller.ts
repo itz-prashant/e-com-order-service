@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import {Request as AuthRequest} from "express-jwt"
+import { Request as AuthRequest } from "express-jwt";
 import {
   CartItem,
   ProductPricingCache,
@@ -19,7 +19,10 @@ import { MessageBroker } from "../types/broker";
 import customerModel from "../customer/customer-model";
 
 export class OrderController {
-  constructor(private paymentGW: PaymentGateway, private broker: MessageBroker) {}
+  constructor(
+    private paymentGW: PaymentGateway,
+    private broker: MessageBroker,
+  ) {}
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     const {
@@ -113,31 +116,72 @@ export class OrderController {
         currency: "inr",
         idempotencyKey: idemPotencyKey as string,
       });
-    await this.broker.sendMessgae("order", JSON.stringify(newOrder))
+      await this.broker.sendMessgae("order", JSON.stringify(newOrder));
 
       return res.json({ paymentUrl: session.paymentUrl });
     }
-    await this.broker.sendMessgae("order", JSON.stringify(newOrder))
+    await this.broker.sendMessgae("order", JSON.stringify(newOrder));
 
-    return res.json({ paymentUrl: null});
+    return res.json({ paymentUrl: null });
   };
 
-  getMine = async (req: AuthRequest, res: Response,next: NextFunction)=>{
-    const userId = req.auth.sub
+  getMine = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const userId = req.auth.sub;
 
-    if(!userId){
-      return next(createHttpError(400, "No userId found"))
+    if (!userId) {
+      return next(createHttpError(400, "No userId found"));
     }
 
-    const customer = await customerModel.findOne({userId})
-    if(!customer){
-      return next(createHttpError(400, "No customer found"))
+    const customer = await customerModel.findOne({ userId });
+    if (!customer) {
+      return next(createHttpError(400, "No customer found"));
     }
 
-    const orders = await orderModel.find({customerId: customer.id}, {cart: 0})
+    const orders = await orderModel.find(
+      { customerId: customer.id },
+      { cart: 0 },
+    );
 
-    return res.json(orders)
-  }
+    return res.json(orders);
+  };
+
+  getSingle = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { sub: userId, role, tenant: tenantId } = req.auth;
+
+    const orderId = req.params.orderId;
+
+    if (!userId) {
+      return next(createHttpError(400, "No userId found"));
+    }
+
+    const order = await orderModel.findOne({ _id: orderId });
+
+    if (!order) {
+      return next(createHttpError(400, "Order does not exist"));
+    }
+
+    if (role === "admin") {
+      return res.json(order);
+    }
+
+    const myRestaurantOrder = order.tenantId === tenantId;
+
+    if (role === "manager" && myRestaurantOrder) {
+      return res.json(order);
+    }
+
+    if (role === "customer") {
+      const customer = await customerModel.findOne({ userId });
+      if (!customer) {
+        return next(createHttpError(400, "No customer found"));
+      }
+      if(customer._id.toString() === order.customerId.toString()){
+        return res.json(order);
+      }
+    }
+
+    return next(createHttpError(403, "Operation not permitted"));
+  };
 
   private calculateTotal = async (cart: CartItem[]) => {
     const productIds = cart.map((item) => item._id);
