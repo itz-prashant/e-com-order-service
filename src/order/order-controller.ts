@@ -209,7 +209,7 @@ export class OrderController {
     if (role === ROLES.ADMIN) {
       const filter = {};
       if (tenantId) {
-        filter["tenanId"] = tenantId;
+        filter["tenanId"] = Number(tenantId);
       }
       // TODO: very important add pagination
       const orders = await orderModel
