@@ -10,7 +10,7 @@ import productCacheModel from "../productCache/product-cache-model";
 import toppingCacheModel from "../toppingCache.ts/toppingCacheModel";
 import couponModel from "../coupon/coupon-model";
 import orderModel from "./order-model";
-import { OrderStatus, PaymentMode, PaymentStatus } from "./order-types";
+import { OrderStatus, PaymentMode, PaymentStatus, ROLES } from "./order-types";
 import idempotencyModel from "../idempotency/idempotency-model";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
@@ -195,6 +195,39 @@ export class OrderController {
     }
 
     return next(createHttpError(403, "Operation not permitted"));
+  };
+
+  getAll = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    const { role, tenant: userTenantId } = req.auth;
+
+    const tenantId = req.query.tenantId;
+
+    if (role === ROLES.CUSTOMER) {
+      return next(createHttpError(403, "Not allowed"));
+    }
+
+    if (role === ROLES.ADMIN) {
+      const filter = {};
+      if (tenantId) {
+        filter["tenanId"] = tenantId;
+      }
+      // TODO: very important add pagination
+      const orders = await orderModel
+        .find(filter, {}, { sort: { createdAt: -1 } })
+        .populate("customerId")
+        .exec();
+
+      return res.json(orders);
+    }
+
+    if (role === ROLES.MANAGER) {
+      const orders = await orderModel
+        .find({ tenantId: userTenantId }, {}, { sort: { createdAt: -1 } })
+        .populate("customerId")
+        .exec();
+      return res.json(orders);
+    }
+    return next(createHttpError(403, "Not allowed"));
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
