@@ -230,6 +230,41 @@ export class OrderController {
     return next(createHttpError(403, "Not allowed"));
   };
 
+  changeStatus = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const { role, tenant: tenanId } = req.auth;
+    const orderID = req.params.orderID;
+
+    if (role === ROLES.CUSTOMER) {
+      return next(createHttpError(403, "Not allowed"));
+    }
+
+    if (role === ROLES.ADMIN || role === ROLES.MANAGER) {
+      const order = await orderModel.findOne({ _id: orderID });
+      if (!order) {
+        return next(createHttpError(400, "Order not found"));
+      }
+
+      const isMyRestaurantOrder = order.tenantId === tenanId
+
+      if(role === ROLES.MANAGER && !isMyRestaurantOrder){
+        return next(createHttpError(403, "Not allowed"));
+      }
+
+      const updatedOrder = await orderModel.findOneAndUpdate(
+        {_id: orderID},
+        {orderStatus: req.body.status},
+        {new: true}
+      )
+
+      return res.json({_id: updatedOrder.id})
+    }
+     return next(createHttpError(403, "Not allowed"));
+  };
+
   private calculateTotal = async (cart: CartItem[]) => {
     const productIds = cart.map((item) => item._id);
 
