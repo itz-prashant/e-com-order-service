@@ -162,7 +162,7 @@ export class OrderController {
         acc[field] = 1;
         return acc;
       },
-      { customerId: 1 },
+      { customerId: 1, tenantId: 1 },
     );
 
     const order = await orderModel
@@ -236,33 +236,33 @@ export class OrderController {
     next: NextFunction,
   ) => {
     const { role, tenant: tenanId } = req.auth;
-    const orderID = req.params.orderID;
+    const orderId = req.params.orderId;
 
     if (role === ROLES.CUSTOMER) {
       return next(createHttpError(403, "Not allowed"));
     }
 
     if (role === ROLES.ADMIN || role === ROLES.MANAGER) {
-      const order = await orderModel.findOne({ _id: orderID });
+      const order = await orderModel.findOne({ _id: orderId });
       if (!order) {
         return next(createHttpError(400, "Order not found"));
       }
 
-      const isMyRestaurantOrder = order.tenantId === tenanId
+      const isMyRestaurantOrder = order.tenantId === tenanId;
 
-      if(role === ROLES.MANAGER && !isMyRestaurantOrder){
+      if (role === ROLES.MANAGER && !isMyRestaurantOrder) {
         return next(createHttpError(403, "Not allowed"));
       }
 
       const updatedOrder = await orderModel.findOneAndUpdate(
-        {_id: orderID},
-        {orderStatus: req.body.status},
-        {new: true}
-      )
+        { _id: orderId },
+        { orderStatus: req.body.status },
+        { new: true },
+      );
 
-      return res.json({_id: updatedOrder.id})
+      return res.json({ _id: updatedOrder.id });
     }
-     return next(createHttpError(403, "Not allowed"));
+    return next(createHttpError(403, "Not allowed"));
   };
 
   private calculateTotal = async (cart: CartItem[]) => {
