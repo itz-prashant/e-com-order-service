@@ -10,7 +10,13 @@ import productCacheModel from "../productCache/product-cache-model";
 import toppingCacheModel from "../toppingCache.ts/toppingCacheModel";
 import couponModel from "../coupon/coupon-model";
 import orderModel from "./order-model";
-import { OrderStatus, PaymentMode, PaymentStatus, ROLES } from "./order-types";
+import {
+  OrderEvents,
+  OrderStatus,
+  PaymentMode,
+  PaymentStatus,
+  ROLES,
+} from "./order-types";
 import idempotencyModel from "../idempotency/idempotency-model";
 import mongoose from "mongoose";
 import createHttpError from "http-errors";
@@ -105,7 +111,10 @@ export class OrderController {
         await session.endSession();
       }
     }
-
+    const brokerMessage = {
+      event_type: OrderEvents.ORDER_CREATE,
+      data: newOrder[0],
+    };
     if (paymentMode === PaymentMode.CARD) {
       // Payment processing
 
@@ -116,11 +125,20 @@ export class OrderController {
         currency: "inr",
         idempotencyKey: idemPotencyKey as string,
       });
-      await this.broker.sendMessgae("order", JSON.stringify(newOrder));
+
+      await this.broker.sendMessgae(
+        "order",
+        JSON.stringify(brokerMessage),
+        newOrder[0]._id.toString(),
+      );
 
       return res.json({ paymentUrl: session.paymentUrl });
     }
-    await this.broker.sendMessgae("order", JSON.stringify(newOrder));
+    await this.broker.sendMessgae(
+      "order",
+      JSON.stringify(brokerMessage),
+      newOrder[0]._id.toString(),
+    );
 
     return res.json({ paymentUrl: null });
   };
@@ -258,6 +276,16 @@ export class OrderController {
         { _id: orderId },
         { orderStatus: req.body.status },
         { new: true },
+      );
+
+      const brokerMessage = {
+        event_type: OrderEvents.ORDER_STATUS_UPDATE,
+        data: updatedOrder,
+      };
+      await this.broker.sendMessgae(
+        "order",
+        JSON.stringify(brokerMessage),
+        updatedOrder._id.toString(),
       );
 
       return res.json({ _id: updatedOrder.id });

@@ -41,3 +41,10 @@ export enum ROLES {
   CUSTOMER = "customer",
   MANAGER = "manager",
 }
+
+export enum OrderEvents {
+  ORDER_CREATE = "ORDER_CREATE",
+  PAYMENT_STATUS_UPDATE = "PAYMENT_STATUS_UPDATE",
+  ORDER_STATUS_UPDATE = "ORDER_STATUS_UPDATE"
+
+}

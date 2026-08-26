@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
 import { PaymentGateway } from "./payment-type";
 import orderModel from "../order/order-model";
-import { PaymentStatus } from "../order/order-types";
+import { OrderEvents, PaymentStatus } from "../order/order-types";
 import { MessageBroker } from "../types/broker";
 
 export class PaymentController {
-  constructor(private paymentGW: PaymentGateway, private broker:MessageBroker) {}
+  constructor(
+    private paymentGW: PaymentGateway,
+    private broker: MessageBroker,
+  ) {}
 
   handleWebhook = async (req: Request, res: Response) => {
     const webhookBody = req.body;
@@ -26,10 +29,19 @@ export class PaymentController {
             ? PaymentStatus.PAID
             : PaymentStatus.FAILED,
         },
-        { new:true },
+        { new: true },
       );
-    // console.log("updatedOrder", updatedOrder)
-    await this.broker.sendMessgae("order", JSON.stringify(updatedOrder))
+      const brokerMessage = {
+        event_type: OrderEvents.PAYMENT_STATUS_UPDATE,
+        data: updatedOrder,
+      };
+      await this.broker.sendMessgae(
+        "order",
+        JSON.stringify(brokerMessage),
+        updatedOrder._id.toString(),
+      );
+
+      // console.log("updatedOrder", updatedOrder)
     }
     return res.json({ success: true });
   };
