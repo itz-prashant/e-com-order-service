@@ -15,21 +15,21 @@ export interface AuthRequest extends Request {
 }
 
 export interface PriceConfiguration {
-    priceType: {
-      type: "base" | "additional";
-      availableOptions: {
-        [key: string]: number;
-      };
+  priceType: {
+    type: "base" | "additional";
+    availableOptions: {
+      [key: string]: number;
     };
   };
+}
 
 export interface ProductPricingCache {
   productId: string;
-  priceConfiguration: PriceConfiguration
+  priceConfiguration: PriceConfiguration;
 }
 
 export interface ProductMessage {
-  id: string
+  id: string;
   event_type: ProductEvents;
   data: {
     id: string;
@@ -38,15 +38,18 @@ export interface ProductMessage {
 }
 
 export interface ToppingPriceCache {
-  _id: mongoose.Types.ObjectId
+  _id: mongoose.Types.ObjectId;
   toppingId: string;
   price: number;
   tenantId: string;
 }
 export interface ToppingMessage {
-  id: string;
-  price: number;
-  tenantId: string;
+  event_type: ToppingEvents;
+  data: {
+    id: string;
+    price: number;
+    tenantId: string;
+  };
 }
 
 export type ProductAttribute = {
@@ -84,13 +87,21 @@ export enum ProductEvents {
   PRODUCT_DELETE = "PRODUCT_DELETE",
 }
 
-export interface CartItem 
-  extends Pick<Product, "_id" | "name" | "image" | "priceConfiguration">{
-    chosenConfiguration:{
-      priceConfiguration:{
-        [key: string]: number;
-      };
-      selectedToppings: Topping[]
+export interface CartItem extends Pick<
+  Product,
+  "_id" | "name" | "image" | "priceConfiguration"
+> {
+  chosenConfiguration: {
+    priceConfiguration: {
+      [key: string]: number;
     };
-    qty: number
-  }
+    selectedToppings: Topping[];
+  };
+  qty: number;
+}
+
+export enum ToppingEvents {
+  TOPPING_CREATE = "TOPPING_CREATE",
+  TOPPING_UPDATE = "TOPPING_UPDATE",
+  TOPPING_DELETE = "TOPPING_DELETE",
+}
