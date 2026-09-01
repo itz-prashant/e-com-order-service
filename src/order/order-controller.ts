@@ -111,9 +111,12 @@ export class OrderController {
         await session.endSession();
       }
     }
+    const customer = await customerModel.findOne({
+      _id: newOrder[0].customerId,
+    });
     const brokerMessage = {
       event_type: OrderEvents.ORDER_CREATE,
-      data: newOrder[0],
+      data: { ...newOrder[0], customerId: customer },
     };
     if (paymentMode === PaymentMode.CARD) {
       // Payment processing
@@ -278,9 +281,13 @@ export class OrderController {
         { new: true },
       );
 
+      const customer = await customerModel.findOne({
+        _id: updatedOrder[0].customerId,
+      });
+
       const brokerMessage = {
         event_type: OrderEvents.ORDER_STATUS_UPDATE,
-        data: updatedOrder,
+        data: {...updatedOrder.toObject(), customerId: customer},
       };
       await this.broker.sendMessgae(
         "order",

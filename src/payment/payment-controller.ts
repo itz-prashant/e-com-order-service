@@ -3,6 +3,7 @@ import { PaymentGateway } from "./payment-type";
 import orderModel from "../order/order-model";
 import { OrderEvents, PaymentStatus } from "../order/order-types";
 import { MessageBroker } from "../types/broker";
+import customerModel from "../customer/customer-model";
 
 export class PaymentController {
   constructor(
@@ -31,9 +32,12 @@ export class PaymentController {
         },
         { new: true },
       );
+      const customer = await customerModel.findOne({
+              _id: updatedOrder[0].customerId,
+            });
       const brokerMessage = {
         event_type: OrderEvents.PAYMENT_STATUS_UPDATE,
-        data: updatedOrder,
+        data:  {...updatedOrder.toObject(), customerId: customer},
       };
       await this.broker.sendMessgae(
         "order",
