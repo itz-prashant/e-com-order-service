@@ -40,5 +40,4 @@ COPY --from=builder --chown=node:node /home/node/app/dist ./
 
 EXPOSE 5503
 
-
 CMD ["node", "server.js"]
